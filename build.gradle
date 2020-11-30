@@ -108,13 +108,11 @@ task docs {
 }
 
 task pullImage(type: DockerPullImage) {
-    enabled = !inCI
     group 'OpenAPI'
     image = 'domix/swagger-cli:4.0.4'
 }
 
 task createContainer(type: DockerCreateContainer) {
-    enabled = !inCI
     group 'OpenAPI'
     dependsOn pullImage
     targetImageId pullImage.image
@@ -138,7 +136,6 @@ task createContainer(type: DockerCreateContainer) {
 }
 
 task mergeContractFiles(type: DockerStartContainer) {
-    enabled = !inCI
     group 'OpenAPI'
     dependsOn createContainer
     targetContainerId createContainer.containerId
@@ -148,7 +145,6 @@ task buildContract(type: DockerLogsContainer) {
     group 'OpenAPI'
     dependsOn mergeContractFiles
     targetContainerId mergeContractFiles.containerId
-    enabled = !inCI
     follow = true
     tailAll = true
 }
