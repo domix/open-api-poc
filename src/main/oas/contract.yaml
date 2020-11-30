@@ -1,0 +1,23 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: Domix API
+  description: Some desc
+  contact:
+    email: api@domix.orf
+    name: Domix API
+    url: https://domix.org
+  license:
+    name: Apache 2
+    url: https://domix.org
+servers:
+  - url: https://dev.domix.org/
+    description: Dev environment
+  - url: https://domix.org/
+    description: Prod environment
+paths:
+  $ref: './paths/_index.yaml'
+components:
+  schemas:
+    $ref: './schemas/_index.yaml'
+

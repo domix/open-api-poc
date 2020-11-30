@@ -1,0 +1,9 @@
+description: Some desc
+required:
+  - success
+properties:
+  success:
+    type: boolean
+    description: Some desc
+example:
+  success: true

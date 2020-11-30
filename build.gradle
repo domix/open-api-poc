@@ -1,0 +1,157 @@
+plugins {
+    id "org.openapi.generator" version "5.0.0-beta3"
+    id "org.asciidoctor.jvm.convert" version "3.3.0"
+    id 'com.bmuschko.docker-remote-api' version '6.6.1'
+    id "com.github.ben-manes.versions" version '0.36.0'
+    id 'idea'
+    id 'groovy'
+}
+
+import com.bmuschko.gradle.docker.tasks.container.*
+import com.bmuschko.gradle.docker.tasks.image.*
+
+ext {
+    inCI = System.getenv()['CI'] ?: System.getenv()['BUILD_ID']
+    specFile = inCI ? "$projectDir/src/main/oas/fixed.yaml" : "$project.buildDir/buildOas/contract.yaml"
+}
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+asciidoctor {
+
+    baseDirFollowsSourceFile()
+
+    sourceDir = "$projectDir/build/oas/adoc".toString()
+
+    attributes   \
+          'build-gradle' : file('build.gradle') ,
+    'sourcedir' : project.sourceSets.main.java.srcDirs[0] ,
+    'endpoint-url' : 'http://example.org' ,
+    'imagesdir' : 'images' ,
+    'toc' : 'left' ,
+    'icons' : 'font' ,
+    'setanchors' : '' ,
+    'idprefix' : '' ,
+    'idseparator' : '-' ,
+    'docinfo' : 'shared'
+}
+
+openApiValidate {
+    inputSpec = specFile
+    recommend = true
+}
+
+openApiGenerate {
+    generatorName = "html2"
+    inputSpec = specFile
+    outputDir = "$projectDir/build/oas/html2".toString()
+    apiPackage = "domix.api"
+    invokerPackage = "domix.api.invoker"
+    modelPackage = "domix.api.model"
+    configOptions = [
+        dateLibrary: "java8"
+    ]
+    /*globalProperties = [
+        modelDocs: "false"
+    ]
+     */
+    skipValidateSpec = false
+    logToStderr = true
+    generateAliasAsModel = true
+    // set to true and set environment variable {LANG}_POST_PROCESS_FILE
+    // (e.g. SCALA_POST_PROCESS_FILE) to the linter/formatter to be processed.
+    // This command will be passed one file at a time for most supported post processors.
+    enablePostProcessFile = false
+}
+
+clean.doFirst {
+    //Deletes generated Java files
+    delete "$projectDir/gensrc"
+}
+
+task htmlDoc(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    group 'documentation'
+    description 'Generates the HTML document'
+    generatorName = "html"
+    inputSpec = specFile
+
+    outputDir = "$projectDir/build/oas/html".toString()
+}
+
+task generateAdocFiles(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    group 'documentation'
+    generatorName = "asciidoc"
+    inputSpec = specFile
+    outputDir = "$projectDir/build/oas/adoc".toString()
+
+    configOptions = [
+        specDir: "$projectDir/src/main/docs/asciidoc".toString()
+    ]
+}
+
+task generatePlantumlFiles(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    group 'documentation'
+    generatorName = "plantuml"
+    inputSpec = specFile
+
+    outputDir = "$projectDir/build/oas/plantuml".toString()
+}
+
+task docs {
+    group 'documentation'
+    dependsOn(['buildContract','openApiGenerate', 'htmlDoc', 'generateAdocFiles', 'generatePlantumlFiles'])
+    doLast {
+        println 'OpenAPI 3 documentation generated...'
+    }
+}
+
+task pullImage(type: DockerPullImage) {
+    enabled = !inCI
+    group 'OpenAPI'
+    image = 'domix/swagger-cli:4.0.4'
+}
+
+task createContainer(type: DockerCreateContainer) {
+    enabled = !inCI
+    group 'OpenAPI'
+    dependsOn pullImage
+    targetImageId pullImage.image
+    hostConfig.autoRemove = true
+    hostConfig.binds = [
+        "$project.projectDir/src/main/oas": '/oas',
+        "$project.buildDir/buildOas": '/_build'
+    ]
+    attachStderr = true
+    attachStdout = true
+
+    cmd = [
+        'swagger-cli',
+        'bundle',
+        '/oas/contract.yaml',
+        '--outfile',
+        '/_build/contract.yaml',
+        '--type',
+        'yaml'
+    ]
+}
+
+task mergeContractFiles(type: DockerStartContainer) {
+    enabled = !inCI
+    group 'OpenAPI'
+    dependsOn createContainer
+    targetContainerId createContainer.containerId
+}
+
+task buildContract(type: DockerLogsContainer) {
+    group 'OpenAPI'
+    dependsOn mergeContractFiles
+    targetContainerId mergeContractFiles.containerId
+    enabled = !inCI
+    follow = true
+    tailAll = true
+}
+
+asciidoctor.dependsOn docs
