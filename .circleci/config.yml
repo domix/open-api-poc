@@ -14,17 +14,15 @@ jobs:
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "build.gradle" }}
-            # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
+      - setup_remote_docker:
+          version: 19.03.13
       - run:
-          # Additional gradle args: --stacktrace --full-stacktrace
           name: Prepare Gradle Wrapper
           command: ./gradlew --no-daemon --continue -version
       - run:
           name: Gradle OpenAPI generation
-          command: |
-            ./gradlew --no-daemon --continue asciidoctor
-          when: always
+          command: ./gradlew --no-daemon --continue asciidoctor
       - run:
           name: Save Open Api Specification Files
           command: |
@@ -33,7 +31,6 @@ jobs:
             mkdir -p $OAS_DIR
             cp -r ./build/oas/* $OAS_DIR
             cp -r ./build/docs/* $OAS_DIR
-          when: always
       - save_cache:
           paths:
             - ~/.gradle
