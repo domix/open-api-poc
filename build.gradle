@@ -11,7 +11,7 @@ import com.bmuschko.gradle.docker.tasks.container.*
 import com.bmuschko.gradle.docker.tasks.image.*
 
 ext {
-    specFile = "$project.buildDir/buildOas/contract.yaml"
+    specFile = "$project.buildDir/oas/contract.yaml"
 }
 
 repositories {
@@ -119,7 +119,7 @@ task createContainer(type: DockerCreateContainer) {
     hostConfig.autoRemove = true
     hostConfig.binds = [
         "$project.projectDir/src/main/oas": '/oas',
-        "$project.buildDir/buildOas": '/_build'
+        "$project.buildDir/oas": '/_build'
     ]
     attachStderr = true
     attachStdout = true
