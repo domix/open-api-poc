@@ -11,8 +11,7 @@ import com.bmuschko.gradle.docker.tasks.container.*
 import com.bmuschko.gradle.docker.tasks.image.*
 
 ext {
-    inCI = System.getenv()['CI'] ?: System.getenv()['BUILD_ID']
-    specFile = inCI ? "$projectDir/src/main/oas/fixed.yaml" : "$project.buildDir/buildOas/contract.yaml"
+    specFile = "$project.buildDir/buildOas/contract.yaml"
 }
 
 repositories {
