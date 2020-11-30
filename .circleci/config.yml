@@ -20,6 +20,9 @@ jobs:
           name: Prepare Gradle Wrapper
           command: ./gradlew --no-daemon --continue -version
       - run:
+          name: Prepare working dirs
+          command: mkdir -p build/oas
+      - run:
           name: Gradle OpenAPI generation
           command: ./gradlew --no-daemon --continue asciidoctor
       - run:
